@@ -4,16 +4,8 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include <mpi.h>
 
-
-#define GET(x, y, size_x) ((x) + (y) * (size_x))
 #define STENCIL_SIZE 30
-
-int blockDim;
-int nbBlock;
-int me, N;
-MPI_Status status;
 
 typedef float stencil_t;
 
@@ -32,8 +24,10 @@ static stencil_t*prev_values = NULL;
 static int size_x = STENCIL_SIZE;
 static int size_y = STENCIL_SIZE;
 
-FILE * output;
+static int blockDim;
 
+#define GET(x, y, size_x) ((x) + (y) * (size_x))
+  
 /** init stencil values to 0, borders to non-zero */
 static void stencil_init(void)
 {
@@ -74,9 +68,9 @@ static void stencil_display(int x0, int x1, int y0, int y1)
     {
       for(x = x0; x <= x1; x++)
         {
-          fprintf(output,"%8.5g ", values[x + size_x * y]);
+          printf("%8.5g ", values[x + size_x * y]);
         }
-      fprintf(output,"\n");
+      printf("\n");
     }
 }
 
@@ -110,59 +104,28 @@ static int stencil_step(void)
 
 int main(int argc, char**argv)
 {
-  if (argc <3){
-    fprintf(stderr,"Usage : stencil <file_name>\n");
-    exit(-1);
-  }
-
-  MPI_Init(&argc, &argv);
-  MPI_Comm_size(MPI_COMM_WORLD, &N);
-  MPI_Comm_rank(MPI_COMM_WORLD, &me);
-  // On considère que blockDim divise STENCIL_SIZE
-  nbBlock = N;
-  blockDim = STENCIL_SIZE/nbBlock;
-  if(STENCIL_SIZE % blockDim != 0){
-    fprintf(stderr,"La matrice ne se divise pas correctement et ne pourra pas être reconstituée correctement.\n");
-    exit(-1);
-  }
-  FILE *file = NULL;
-  // A la fin de l'execution on va rappatrier les données de tous les processus 
-  if (me == 0){
-    file = fopen(argv[1], "w");
-    if (file == NULL) {
-      perror("Error opening file");
-      return 1; 
-    }
-    output = stdout;
-  }
   stencil_init();
-
-  //stencil_display(0, size_x - 1, 0, size_y - 1);
+  printf("# init:\n");
+  stencil_display(0, size_x - 1, 0, size_y - 1);
 
   struct timespec t1, t2;
   clock_gettime(CLOCK_MONOTONIC, &t1);
   int s;
   for(s = 0; s < stencil_max_steps; s++)
-  {
-    int convergence = stencil_step();
-    if(convergence)
     {
-        break;
+      int convergence = stencil_step();
+      if(convergence)
+        {
+          break;
+        }
     }
-  }
   clock_gettime(CLOCK_MONOTONIC, &t2);
   const double t_usec = (t2.tv_sec - t1.tv_sec) * 1000000.0 + (t2.tv_nsec - t1.tv_nsec) / 1000.0;
   printf("# steps = %d\n", s);
   printf("# time = %g usecs.\n", t_usec);
   printf("# gflops = %g\n", (6 * size_x * size_y * s) / (t_usec * 1000));
-  // TODO : récupération de la matrice complète
-  printf("I'm %d/%d\n", me,N);
-  if(me==0 && file != NULL){
-    output = file;
-    stencil_display(0, size_x - 1, 0, size_y - 1);
-    fclose(file);
-  }
-  stencil_free(); 
-  MPI_Finalize();
+  stencil_display(0, size_x - 1, 0, size_y - 1);
+  stencil_free();
+
   return 0;
 }
