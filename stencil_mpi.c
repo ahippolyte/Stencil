@@ -24,6 +24,8 @@ static stencil_t*prev_values = NULL;
 static int size_x = STENCIL_SIZE;
 static int size_y = STENCIL_SIZE;
 
+FILE * output;
+
 /** init stencil values to 0, borders to non-zero */
 static void stencil_init(void)
 {
@@ -64,9 +66,9 @@ static void stencil_display(int x0, int x1, int y0, int y1)
     {
       for(x = x0; x <= x1; x++)
         {
-          printf("%8.5g ", values[x + size_x * y]);
+          fprintf(output,"%8.5g ", values[x + size_x * y]);
         }
-      printf("\n");
+      fprintf(output,"\n");
     }
 }
 
@@ -100,9 +102,19 @@ static int stencil_step(void)
 
 int main(int argc, char**argv)
 {
+  if (argc <2){
+    fprintf(stderr,"Usage : stencil <file_name>\n");
+    exit(-1);
+  }
+  FILE *file = fopen(argv[1], "w"); // Open file in write mode
+  if (file == NULL) {
+    perror("Error opening file");
+    return 1; // Return an error code if file opening fails
+  }
+  output = stdout;
   stencil_init();
   printf("# init:\n");
-  stencil_display(0, size_x - 1, 0, size_y - 1);
+  //stencil_display(0, size_x - 1, 0, size_y - 1);
 
   struct timespec t1, t2;
   clock_gettime(CLOCK_MONOTONIC, &t1);
@@ -120,8 +132,10 @@ int main(int argc, char**argv)
   printf("# steps = %d\n", s);
   printf("# time = %g usecs.\n", t_usec);
   printf("# gflops = %g\n", (6 * size_x * size_y * s) / (t_usec * 1000));
+  output = file;
   stencil_display(0, size_x - 1, 0, size_y - 1);
-  stencil_free();
+  stencil_free(); 
+  fclose(file);
 
   return 0;
 }
