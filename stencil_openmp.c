@@ -4,6 +4,7 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <omp.h>
 
 typedef float stencil_t;
 
@@ -77,10 +78,12 @@ static int stencil_step(void)
   prev_values = values;
   values = tmp;
   int x, y;
+  #pragma omp parallel for shared(prev_values,values) private(x,y) reduction(&&:convergence) schedule(static)
   for (y = 1; y < size_y - 1; y++)
   {
     for (x = 1; x < size_x - 1; x++)
     {
+    
       values[x + size_x * y] =
           alpha * prev_values[x - 1 + size_x * y] +
           alpha * prev_values[x + 1 + size_x * y] +
@@ -112,10 +115,12 @@ int main(int argc, char **argv)
   }
   clock_gettime(CLOCK_MONOTONIC, &t2);
   const double t_usec = (t2.tv_sec - t1.tv_sec) * 1000000.0 + (t2.tv_nsec - t1.tv_nsec) / 1000.0;
-  printf("# size = %d\n", STENCIL_SIZE);
-  printf("# steps = %d\n", s);
-  printf("# time = %g usecs.\n", t_usec);
-  printf("# gflops = %g\n", (6 * size_x * size_y * s) / (t_usec * 1000));
+  // printf("# size = %d\n", STENCIL_SIZE);
+  // printf("# steps = %d\n", s);
+  // printf("# time = %g usecs.\n", t_usec);
+  // printf("# gflops = %g\n", (6.0 * size_x * size_y * s) / t_usec / 1000);
+  long int ops = 6 * size_x * size_y * s;
+  printf("%d,%d,%ld,%g,%g\n",STENCIL_SIZE,s,ops, t_usec, (6.0 * size_x * size_y * s) / t_usec / 1000);
   //stencil_display(0, size_x - 1, 0, size_y - 1);
   stencil_free();
 

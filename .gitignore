@@ -1,5 +1,6 @@
 stencil_seq
 stencil_mpi
+stencil_openmp
 settings.json
 *.yml
 *.plist

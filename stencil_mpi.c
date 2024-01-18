@@ -29,7 +29,7 @@ static const stencil_t alpha = 0.02;
 static const stencil_t epsilon = 0.0001;
 
 /** max number of steps */
-static const int stencil_max_steps = 100000 * 100;
+static const int stencil_max_steps = 10000;
 
 static stencil_t *values = NULL;
 static stencil_t *prev_values = NULL;
@@ -278,6 +278,7 @@ int main(int argc, char **argv)
   // On assigne les valeur de l'offset et que l'on doit calculer
   offset_x = coords[0] * blockDim[0];
   offset_y = coords[1] * blockDim[1];
+  // Calcul des dimensions réelles inutles car on suppose que N divise STENCIL_SIZE, mais je l'ai laissé pour des futures versions...
   dim_x = (coords[0] * blockDim[0] + blockDim[0] <= (STENCIL_SIZE - 2)) ? blockDim[0] : (STENCIL_SIZE - 2) - coords[0] * blockDim[0];
   dim_y = (coords[1] * blockDim[1] + blockDim[1] <= (STENCIL_SIZE - 2)) ? blockDim[1] : (STENCIL_SIZE - 2) - coords[1] * blockDim[1];
 
